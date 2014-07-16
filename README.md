@@ -101,9 +101,9 @@ for rows.Next() {
 
 # FEEDBACK
 
-You need to also listen for `Feedback`s for all push notifications. If you do not think
-that you need to implement this right away, you can simply spin an empty loop to empty the
-`Feedback` queue. This is required for the engine to keep going.
+You need to listen for `Feedback`s for all push notifications. If you do not wish to
+handles feedback at the current point in time, simply spin an empty loop to empty the
+feedback queue. This is required to keep the engine going.
 
 ```go
 go func() {
@@ -115,7 +115,7 @@ go func() {
     }
 
     switch {
-    case nil: // success
+    case result.Error == nil: // success
 
     case result.Error == push.ErrInvalidDevice:
       // Bad device token as returned by both service providers.
@@ -139,7 +139,7 @@ Refers to each provider's documentation for more information.
 
 # LICENSE
 
-BSD-2 (see LICENSE.md file)
+BSD-2 (see [LICENSE.md](LICENSE.md) file)
 
 # SUPPORT / CONTRIBUTE
 
