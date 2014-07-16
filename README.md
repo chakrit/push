@@ -137,3 +137,13 @@ The presence (or absence) of `Feedback` does not directly translate to push noti
 success or failure as both service providers provides this on a "best effort" basis.
 Refers to each provider's documentation for more information.
 
+# LICENSE
+
+BSD-2 (see LICENSE.md file)
+
+# SUPPORT / CONTRIBUTE
+
+PRs infinitely welcome. Feel free to open a
+[new GitHub issue](https://github.com/chakrit/push/issues/new) if you find any problem,
+would like help, or just want to ask questions.
+
