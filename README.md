@@ -17,7 +17,7 @@ go get github.com/chakrit/push
 
 Internally, `push` use the following noteworthy packages:
 
-* APN - [github.com/anachronistic/apns](github.com/anachronistic/apns)
+* APN - [github.com/timehop/apns](github.com/timehop/apns)
 * GCM - [github.com/alexjlockwood/gcm](github.com/alexjlockwood/gcm)
 
 More providers (or alternative implementation) can be added by implenmenting the `Service`

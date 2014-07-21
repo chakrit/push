@@ -1,9 +1,6 @@
 package push
 
-import "fmt"
-import "github.com/anachronistic/apns"
-
-var ErrInvalidAPNConfiguration = fmt.Errorf("Invalid APN configuration.")
+import "github.com/timehop/apns"
 
 type APN struct {
 	Gateway  string
@@ -17,66 +14,64 @@ func (apn *APN) Accepts() []DeviceType {
 	return []DeviceType{DeviceTypeIOS}
 }
 
-func (apn *APN) Start(io *IO) (e error) {
-	defer func() {
-		var ok bool
-
-		if r := recover(); r != nil {
-			e, ok = r.(error)
-			if !ok {
-				e = fmt.Errorf("%s", r)
-			}
-		}
-	}()
-
-	client := apns.NewClient(apn.Gateway, apn.CertFile, apn.KeyFile)
-	go apn.inputPump(client, io)
-	go apn.feedbackSink(client, io)
-
+func (apn *APN) Start(io *IO) error {
+	go apn.inputPump(io)
 	return nil
 }
 
-func (apn *APN) inputPump(client *apns.Client, io *IO) {
+func (apn *APN) inputPump(io *IO) {
 	for session := range io.Input {
+		client, e := apns.NewClientWithFiles(apn.Gateway, apn.CertFile, apn.KeyFile)
+		if e != nil {
+			// Drain the queue and only report connection error tied to the first device.
+			firstDevice := <-session.Devices
+			for _ = range session.Devices {
+			}
+
+			io.Output <- &Feedback{firstDevice, "", e}
+			continue
+		}
+
 		payload := apns.NewPayload()
-		payload.Alert = session.Payload.Title
+		payload.APS.Alert.Body = session.Payload.Title
 		if badge, ok := session.Payload.Data["badge"]; ok {
-			payload.Badge = badge.(int)
+			payload.APS.Badge = badge.(int)
 		}
 		if sound, ok := session.Payload.Data["sound"]; ok {
-			payload.Sound = sound.(string)
+			payload.APS.Sound = sound.(string)
+		}
+		for key, value := range session.Payload.Data {
+			payload.SetCustomValue(key, value)
 		}
 
 		for device := range session.Devices {
-			pn := apns.NewPushNotification()
+			pn := apns.NewNotification()
+			pn.Payload = payload
 			pn.DeviceToken = device.Token
-			pn.AddPayload(payload)
-			for key, value := range session.Payload.Data {
-				pn.Set(key, value)
-			}
+			pn.Priority = apns.PriorityImmediate
 
-			resp := client.Send(pn)
-			if resp.Error == nil && resp.AppleResponse != "" {
-				resp.Error = fmt.Errorf(resp.AppleResponse)
-			}
-
-			io.Output <- &Feedback{device, "", resp.Error}
+			e := client.Send(pn)
+			io.Output <- &Feedback{device, "", e}
 		}
+
+		// End of session. We did this per-session since the apns library automatically
+		// terminates the connection after all feedbacks have been read.
+		go apn.feedbackSink(io)
 	}
 }
 
-func (apn *APN) feedbackSink(client *apns.Client, io *IO) {
-	go client.ListenForFeedback()
+func (apn *APN) feedbackSink(io *IO) {
+	feedback, e := apns.NewFeedbackWithFiles(apn.Gateway, apn.CertFile, apn.KeyFile)
+	if e != nil {
+		// TODO: The expectation might be that all feedbacks have a non-nil devices. We should
+		//   keep that expectation, which might require some architectural changes or an extra
+		//   channel tied to a session.
+		io.Output <- &Feedback{nil, "", e}
+		return
+	}
 
-	for {
-		select {
-		case feedback := <-apns.FeedbackChannel:
-			info := &Device{feedback.DeviceToken, DeviceTypeIOS}
-			io.Output <- &Feedback{info, "", ErrInvalidDevice}
-
-		case <-apns.ShutdownChannel:
-			// TODO: Warn?
-			return
-		}
+	for f := range feedback.Receive() {
+		info := &Device{f.DeviceToken, DeviceTypeIOS}
+		io.Output <- &Feedback{info, "", ErrInvalidDevice}
 	}
 }
