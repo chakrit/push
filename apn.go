@@ -3,9 +3,10 @@ package push
 import "github.com/timehop/apns"
 
 type APN struct {
-	Gateway  string
-	KeyFile  string
-	CertFile string
+	Gateway         string
+	FeedbackGateway string
+	KeyFile         string
+	CertFile        string
 }
 
 var _ Service = &APN{}
@@ -61,7 +62,7 @@ func (apn *APN) inputPump(io *IO) {
 }
 
 func (apn *APN) feedbackSink(io *IO) {
-	feedback, e := apns.NewFeedbackWithFiles(apn.Gateway, apn.CertFile, apn.KeyFile)
+	feedback, e := apns.NewFeedbackWithFiles(apn.FeedbackGateway, apn.CertFile, apn.KeyFile)
 	if e != nil {
 		// TODO: The expectation might be that all feedbacks have a non-nil devices. We should
 		//   keep that expectation, which might require some architectural changes or an extra

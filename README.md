@@ -35,9 +35,10 @@ Adds APN push target:
 
 ```go
 client.Add(&push.APN{
-  Gateway:  "gateway.sandbox.push.apple.com:2195",
-  KeyFile:  "your_apn_key_file.pem",
-  CertFile: "your_apn_cert_file.pem",
+  Gateway:         "gateway.sandbox.push.apple.com:2195",
+  FeedbackGateway: "feedback.sandbox.push.apple.com:2196",
+  KeyFile:         "your_apn_key_file.pem",
+  CertFile:        "your_apn_cert_file.pem",
 })
 ```
 
