@@ -36,7 +36,9 @@ func (apn *APN) inputPump(io *IO) {
 		payload := apns.NewPayload()
 		payload.APS.Alert.Body = session.Payload.Title
 		if badge, ok := session.Payload.Data["badge"]; ok {
-			payload.APS.Badge = badge.(int)
+			if n, ok := badge.(int); ok {
+				payload.APS.Badge = &n
+			}
 		}
 		if sound, ok := session.Payload.Data["sound"]; ok {
 			payload.APS.Sound = sound.(string)
